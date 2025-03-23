@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <!-- Add this in the head section to include the html2canvas library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025大港開唱行事曆</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            min-width: 1200px; /* Forces wider tables */
+        }
+        
+        .schedule-table th {
+            background-color: #f2f2f2;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        
+        /* Make all cells consistent height */
+        .schedule-table td {
+            border: 1px solid #ddd;
+            padding: 0;
+            height: 40px; /* Reduced from 60px to make tables shorter */
+            min-height: 40px;
+            max-height: 40px;
+            box-sizing: border-box;
+            vertical-align: top;
+            position: relative;
+        }
+        
+        .time-cell {
+            background-color: #f2f2f2;
+            padding: 5px;
+            font-size: 12px;
+            text-align: center;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 120px;
+            min-width: 120px;
+            max-width: 120px;
+            white-space: nowrap;
+        }
+
+        /* Ensure stage columns have equal width */
+        .schedule-table th:not(:first-child) {
+            width: calc((100% - 80px) / 11); /* 11 stage columns */
+        }
+        
+        .performance-cell {
+            padding: 0;
+            cursor: pointer;
+            position: relative;
+            height: 100%;
+            transition: background-color 0.2s;
+        }
+        
+        .performance-box {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2px;
+            text-align: center;
+            overflow: hidden;
+            color: black;
+            font-size: 12px;
+            word-break: break-all;
+            line-height: 1.2;
+        }
+
+        /* Table wrapper with horizontal scroll */
+        .table-wrapper {
+            overflow-x: auto;
+            max-width: 100%;
+        }
+        
+        .selected-performance {
+            outline: 3px solid #000;
+            z-index: 5;
+        }
+        
+        .generate-btn {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .generate-btn:hover {
+            background-color: #45a049;
+        }
+        
+        .my-schedule {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .my-schedule h2 {
+            margin-top: 0;
+        }
+        
+        .schedule-list {
+            padding-left: 20px;
+        }
+        
+        .schedule-item {
+            margin-bottom: 10px;
+        }
+        
+        .stage-colors {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        .stage-color {
+            display: flex;
+            align-items: center;
+            margin: 0 10px 5px 0;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        /* Stage Colors */
+        .南霸天 { background-color: rgb(193, 218, 152); }
+        .海龍王 { background-color: rgb(188, 178, 213); }
+        .女神龍 { background-color: rgb(243, 179, 206); }
+        .海波浪 { background-color: rgb(160, 215, 243); }
+        .卡魔麥 { background-color: rgb(246, 198, 189); }
+        .出頭天 { background-color: rgb(255, 210, 62); }
+        .大雄丸 { background-color: rgb(238, 132, 110); }
+        .藍寶石 { background-color: rgb(104, 168, 216); }
+        .青春夢 { background-color: rgb(246, 198, 172); }
+        .小港祭 { background-color: rgb(197, 178, 146); }
+        .大樹下 { background-color: rgb(158, 158, 158); }
+
+        /* Add this to your existing CSS */
+        .schedule-table th.stage-header {
+            color: black;
+            font-weight: bold;
+        }
+        
+        .schedule-table th.南霸天 { background-color: rgb(143, 194, 62); }
+        .schedule-table th.海龍王 { background-color: rgb(141, 129, 188); }
+        .schedule-table th.女神龍 { background-color: rgb(255, 6, 128); }
+        .schedule-table th.海波浪 { background-color: rgb(42, 156, 216); }
+        .schedule-table th.卡魔麥 { background-color: rgb(234, 110, 100); }
+        .schedule-table th.出頭天 { background-color: rgb(246, 170, 25); }
+        .schedule-table th.大雄丸 { background-color: rgb(227, 29, 38); }
+        .schedule-table th.藍寶石 { background-color: rgb(28, 68, 145); }
+        .schedule-table th.青春夢 { background-color: rgb(236, 154, 104); }
+        .schedule-table th.小港祭 { background-color: rgb(176, 137, 96); }
+        .schedule-table th.大樹下 { background-color: rgb(158, 158, 158); }
+
+        /* Updated My Schedule styling */
+        .my-schedule {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: none;
+            background-color: white;
+        }
+        
+        .schedule-table-image {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: fixed;
+        }
+        
+        .schedule-table-image th, .schedule-table-image td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .schedule-table-image th {
+            background-color: #f2f2f2;
+        }
+        
+        .schedule-table-image .time-column {
+            width: 80px;
+            text-align: center;
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        .schedule-event {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #mySchedule, #mySchedule * {
+                visibility: visible;
+            }
+            #mySchedule {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+        }
+
+        /* Adjust the container to be more proportional */
+        @media (min-width: 1200px) {
+            .container {
+                padding: 20px 30px;
+            }
+        }
+        
+        /* Make the schedule more printable/exportable */
+        .schedule-table-image {
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .my-schedule {
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+        }
+        
+        .my-schedule h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>2025大港開唱行事曆</h1>
+        
+        <div class="stage-colors">
+            <div class="stage-color"><div class="color-box 南霸天"></div><span>南霸天</span></div>
+            <div class="stage-color"><div class="color-box 海龍王"></div><span>海龍王</span></div>
+            <div class="stage-color"><div class="color-box 女神龍"></div><span>女神龍</span></div>
+            <div class="stage-color"><div class="color-box 海波浪"></div><span>海波浪</span></div>
+            <div class="stage-color"><div class="color-box 卡魔麥"></div><span>卡魔麥</span></div>
+            <div class="stage-color"><div class="color-box 出頭天"></div><span>出頭天</span></div>
+            <div class="stage-color"><div class="color-box 大雄丸"></div><span>大雄丸</span></div>
+            <div class="stage-color"><div class="color-box 藍寶石"></div><span>藍寶石</span></div>
+            <div class="stage-color"><div class="color-box 青春夢"></div><span>青春夢</span></div>
+            <div class="stage-color"><div class="color-box 小港祭"></div><span>小港祭</span></div>
+            <div class="stage-color"><div class="color-box 大樹下"></div><span>大樹下</span></div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="day1">3/29 (六)</div>
+            <div class="tab" data-tab="day2">3/30 (日)</div>
+        </div>
+        
+        <div id="day1" class="tab-content active">
+            <div class="table-wrapper">
+                <table class="schedule-table" id="day1-table">
+                    <thead>
+                        <tr>
+                            <th width="100">時間</th>
+                            <th>南霸天</th>
+                            <th>海龍王</th>
+                            <th>女神龍</th>
+                            <th>海波浪</th>
+                            <th>卡魔麥</th>
+                            <th>出頭天</th>
+                            <th>大雄丸</th>
+                            <th>藍寶石</th>
+                            <th>青春夢</th>
+                            <th>小港祭</th>
+                            <th>大樹下</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Will be filled with JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="day2" class="tab-content">
+            <div class="table-wrapper">
+                <table class="schedule-table" id="day2-table">
+                    <thead>
+                        <tr>
+                            <th width="100">時間</th>
+                            <th>南霸天</th>
+                            <th>海龍王</th>
+                            <th>女神龍</th>
+                            <th>海波浪</th>
+                            <th>卡魔麥</th>
+                            <th>出頭天</th>
+                            <th>大雄丸</th>
+                            <th>藍寶石</th>
+                            <th>青春夢</th>
+                            <th>小港祭</th>
+                            <th>大樹下</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Will be filled with JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <button class="generate-btn" id="generateBtn">生成我的行事曆</button>
+        <!-- Add this button right after the generate button -->
+        <button class="generate-btn" id="saveImageBtn" style="background-color: #2196F3; margin-top: 10px; display: none;">儲存行事曆為圖片</button>
+
+        
+        <div class="my-schedule" id="mySchedule">
+            <h2>我的大港開唱行事曆</h2>
+            <table class="schedule-table-image">
+                <thead>
+                    <tr>
+                        <th class="time-column">時間</th>
+                        <th>3/29 (六)</th>
+                        <th>3/30 (日)</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleImageBody">
+                    <!-- Will be filled with JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const performanceData = {
+            "day1": [
+                { performer: "傷心欲絕", time: "2025年3月29日 12:30 → 13:10", stage: "南霸天" },
+                { performer: "南西肯恩", time: "2025年3月29日 12:30 → 13:10", stage: "女神龍" },
+                { performer: "Mario Zwinkle<br>[ID]", time: "2025年3月29日 13:00 → 13:40", stage: "卡魔麥" },
+                { performer: "DJ Yellow Yellow<br>aka<br>黃小楨 + 黃玠", time: "2025年3月29日 13:00 → 14:00", stage: "大雄丸" },
+                { performer: "再會陳一郎<br>▼<br>相逢大港邊", time: "2025年3月29日 13:10 → 13:50", stage: "海龍王" },
+                { performer: "Bremen<br>Entertainment<br>Inc.<br>布萊梅", time: "2025年3月29日 13:10 → 13:50", stage: "海波浪" },
+                { performer: "公館青少年", time: "2025年3月29日 13:20 → 14:00", stage: "青春夢" },
+                { performer: "塑膠Boy(s)", time: "2025年3月29日 13:40 → 14:20", stage: "出頭天" },
+                { performer: "老王樂隊", time: "2025年3月29日 13:50 → 14:30", stage: "女神龍" },
+                { performer: "李竺芯<br>Siri Lee", time: "2025年3月29日 14:00 → 14:40", stage: "藍寶石" },
+                { performer: "Megaport<br>Wandering<br>溫蒂漫步<br>大樂隊", time: "2025年3月29日 14:10 → 14:50", stage: "南霸天" },
+                { performer: "一點生", time: "2025年3月29日 14:20 → 15:00", stage: "卡魔麥" },
+                { performer: "Andr", time: "2025年3月29日 14:30 → 15:10", stage: "海波浪" },
+                { performer: "VH<br>ft.<br>岑寧兒<br>Yoyo Sham", time: "2025年3月29日 14:40 → 15:20", stage: "海龍王" },
+                { performer: "孩子王<br>ft.<br>黃筱雯<br>甘家薇", time: "2025年3月29日 14:40 → 15:20", stage: "青春夢" },
+                { performer: "壞蛋王·老五", time: "2025年3月29日 15:00 → 15:40", stage: "出頭天" },
+                { performer: "DJ<br>White<br>aka<br>壞特", time: "2025年3月29日 15:00 → 16:00", stage: "大雄丸" },
+                { performer: "[DJ]<br>_tarolin", time: "2025年3月29日 15:00 → 16:00", stage: "小港祭" },
+                { performer: "DJ NICO", time: "2025年3月29日 15:00 → 16:00", stage: "大樹下" },
+                { performer: "葛西瓦<br>Kasiwa", time: "2025年3月29日 15:10 → 15:50", stage: "女神龍" },
+                { performer: "徐噴以煙", time: "2025年3月29日 15:20 → 16:00", stage: "藍寶石" },
+                { performer: "KoOk<br>庫克", time: "2025年3月29日 15:40 → 16:20", stage: "卡魔麥" },
+                { performer: "BATTLES<br>[US]", time: "2025年3月29日 15:50 → 16:30", stage: "南霸天" },
+                { performer: "三牲獻藝", time: "2025年3月29日 15:50 → 16:30", stage: "海波浪" },
+                { performer: "EmptyORio", time: "2025年3月29日 16:00 → 16:40", stage: "海龍王" },
+                { performer: "SHOOTUP", time: "2025年3月29日 16:00 → 16:40", stage: "青春夢" },
+                { performer: "#爵犬<br>SWING", time: "2025年3月29日 16:00 → 16:40", stage: "小港祭" },
+                { performer: "DJ ChiLL", time: "2025年3月29日 16:00 → 17:00", stage: "大樹下" },
+                { performer: "薄荷綠工廠", time: "2025年3月29日 16:20 → 17:00", stage: "出頭天" },
+                { performer: "sogumm<br>[KR]", time: "2025年3月29日 16:40 → 17:20", stage: "女神龍" },
+                { performer: "balazwolf<br>X<br>唐嘉鴻", time: "2025年3月29日 16:40 → 17:20", stage: "藍寶石" },
+                { performer: "[DJ]<br>WHILES<br>DAVIS", time: "2025年3月29日 16:40 → 17:30", stage: "小港祭" },
+                { performer: "Beyond<br>Cure<br>ft.<br>GIGO", time: "2025年3月29日 17:00 → 17:40", stage: "卡魔麥" },
+                { performer: "DJ<br>Orange<br>aka<br>張震嶽", time: "2025年3月29日 17:00 → 18:00", stage: "大雄丸" },
+                { performer: "蘇俊穎<br>掌中木偶劇團", time: "2025年3月29日 17:00 → 17:40", stage: "大樹下" },
+                { performer: "山姆<br>someshiit", time: "2025年3月29日 17:10 → 17:50", stage: "海波浪" },
+                { performer: "ヤングスキニー<br>yangskinny<br>[JP]", time: "2025年3月29日 17:20 → 18:00", stage: "海龍王" },
+                { performer: "擊沉女孩", time: "2025年3月29日 17:20 → 18:00", stage: "青春夢" },
+                { performer: "Creepy<br>Nuts<br>[JP]", time: "2025年3月29日 17:30 → 18:10", stage: "南霸天" },
+                { performer: "#爵犬<br>BOSSA", time: "2025年3月29日 17:30 → 18:10", stage: "小港祭" },
+                { performer: "憂憂 yō-yō", time: "2025年3月29日 17:40 → 18:20", stage: "出頭天" },
+                { performer: "DJ LITRO", time: "2025年3月29日 17:40 → 18:20", stage: "大樹下" },
+                { performer: "I Mean Us<br>ft.<br>黃大謙", time: "2025年3月29日 18:00 → 18:40", stage: "女神龍" },
+                { performer: "黑狼<br>人本那卡西<br>[立志篇]", time: "2025年3月29日 18:00 → 18:40", stage: "藍寶石" },
+                { performer: "#爵犬<br>X<br>NOD TOWN", time: "2025年3月29日 18:10 → 18:50", stage: "小港祭" },
+                { performer: "Goose<br>我鳥<br>[SG]", time: "2025年3月29日 18:20 → 19:00", stage: "卡魔麥" },
+                { performer: "布袋戲大亂鬥<br>&<br>大樹下KTV", time: "2025年3月29日 18:20 → 19:00", stage: "大樹下" },
+                { performer: "JPBS<br>[TH]", time: "2025年3月29日 18:40 → 19:20", stage: "海波浪" },
+                { performer: "Crossfaith<br>[JP]", time: "2025年3月29日 18:40 → 19:20", stage: "海龍王" },
+                { performer: "大人の成發", time: "2025年3月29日 18:40 → 19:20", stage: "青春夢" },
+                { performer: "#爵犬<br>FUNK", time: "2025年3月29日 18:50 → 19:30", stage: "小港祭" },
+                { performer: "UVERworld<br>[JP]", time: "2025年3月29日 19:10 → 19:50", stage: "南霸天" },
+                { performer: "鄭宜農<br>Enno Cheng", time: "2025年3月29日 19:30 → 20:10", stage: "女神龍" },
+                { performer: "[DJ]<br>nevafadded", time: "2025年3月29日 19:30 → 21:00", stage: "小港祭" },
+                { performer: "Little Shy<br>on<br>Allen Street", time: "2025年3月29日 19:40 → 20:20", stage: "卡魔麥" },
+                { performer: "宅邦戰隊", time: "2025年3月29日 20:10 → 21:40", stage: "海波浪" },
+                { performer: "THAT’S<br>MY<br>SHH", time: "2025年3月29日 20:10 → 21:10", stage: "海龍王" },
+                { performer: "閃靈", time: "2025年3月29日 21:00 → 21:50", stage: "南霸天" },
+                { performer: "廣末涼子<br>[JP]", time: "2025年3月29日 21:00 → 21:40", stage: "女神龍" },
+            ],
+            "day2": [
+                { performer: "無妄合作社", time: "2025年3月30日 12:30 → 13:10", stage: "南霸天" },
+                { performer: "淺堤<br>Shallow<br>Levée", time: "2025年3月30日 12:40 → 13:20", stage: "女神龍" },
+                { performer: "頭部<br>組成者", time: "2025年3月30日 13:00 → 13:40", stage: "卡魔麥" },
+                { performer: "DJ<br>Rainbow<br>aka<br>萬芳", time: "2025年3月30日 13:00 → 14:00", stage: "大雄丸" },
+                { performer: "敬 高菊花<br>—禁錮的餘生<br>以莉·高露<br>X<br>陳永龍", time: "2025年3月30日 13:10 → 13:50", stage: "海波浪" },
+                { performer: "FUTURE<br>AFTER<br>A SECOND", time: "2025年3月30日 13:20 → 14:00", stage: "海龍王" },
+                { performer: "粹垢<br>TRAEGO", time: "2025年3月30日 13:20 → 14:00", stage: "青春夢" },
+                { performer: "銀河<br>1996", time: "2025年3月30日 13:40 → 14:20", stage: "出頭天" },
+                { performer: "ゲシュダルト乙女<br>ft.<br>SKARAOKE", time: "2025年3月30日 14:00 → 14:40", stage: "女神龍" },
+                { performer: "只能喝酒<br>的圖書館", time: "2025年3月30日 14:00 → 14:40", stage: "藍寶石" },
+                { performer: "美秀集團", time: "2025年3月30日 14:10 → 14:50", stage: "南霸天" },
+                { performer: "驢子耳朵", time: "2025年3月30日 14:20 → 15:00", stage: "卡魔麥" },
+                { performer: "莉莉周<br>她說", time: "2025年3月30日 14:30 → 15:10", stage: "海波浪" },
+                { performer: "WONK<br>[JP]", time: "2025年3月30日 14:40 → 15:20", stage: "海龍王" },
+                { performer: "DIZLIKE", time: "2025年3月30日 14:40 → 15:20", stage: "青春夢" },
+                { performer: "Blueburn", time: "2025年3月30日 15:00 → 15:40", stage: "出頭天" },
+                { performer: "DJ<br>Vilette<br>aka<br>李竺芯<br>Siri Lee", time: "2025年3月30日 15:00 → 16:00", stage: "大雄丸" },
+                { performer: "[DJ]<br>PJ", time: "2025年3月30日 15:00 → 16:00", stage: "小港祭" },
+                { performer: "Koala Wu", time: "2025年3月30日 15:00 → 15:50", stage: "大樹下" },
+                { performer: "hue", time: "2025年3月30日 15:20 → 16:00", stage: "女神龍" },
+                { performer: "溱會灰", time: "2025年3月30日 15:20 → 16:00", stage: "藍寶石" },
+                { performer: "宝島<br>材料行", time: "2025年3月30日 15:40 → 16:20", stage: "卡魔麥" },
+                { performer: "Chilli<br>Beans.<br>[JP]", time: "2025年3月30日 15:50 → 16:30", stage: "南霸天" },
+                { performer: "空白ごっこ<br>kuhakuGokko<br>[JP]", time: "2025年3月30日 15:50 → 16:30", stage: "海波浪" },
+                { performer: "Karei<br>&<br>ooo<br>&<br>稻妻莉央", time: "2025年3月30日 15:50 → 16:10", stage: "大樹下" },
+                { performer: "Hello<br>Nico", time: "2025年3月30日 16:00 → 16:40", stage: "海龍王" },
+                { performer: "凹與山<br>Our Shame", time: "2025年3月30日 16:00 → 16:40", stage: "青春夢" },
+                { performer: "[DJ]<br>D.J.<br>Kool<br>Klone", time: "2025年3月30日 16:00 → 16:40", stage: "小港祭" },
+                { performer: "Samuel<br>Mie", time: "2025年3月30日 16:10 → 17:00", stage: "大樹下" },
+                { performer: "DEW", time: "2025年3月30日 16:20 → 17:00", stage: "出頭天" },
+                { performer: "Gummy B<br>×<br>楊舒雅", time: "2025年3月30日 16:40 → 17:20", stage: "女神龍" },
+                { performer: "工口紳士", time: "2025年3月30日 16:40 → 17:20", stage: "藍寶石" },
+                { performer: "#爵犬<br>R&B", time: "2025年3月30日 16:40 → 17:30", stage: "小港祭" },
+                { performer: "話梅鹿<br>[HK]", time: "2025年3月30日 17:00 → 17:40", stage: "卡魔麥" },
+                { performer: "DJ<br>Golden<br>aka<br>金魚腦", time: "2025年3月30日 17:00 → 18:00", stage: "大雄丸" },
+                { performer: "空耳卡拉OK", time: "2025年3月30日 17:00 → 18:00", stage: "大樹下" },
+                { performer: "昏鴉", time: "2025年3月30日 17:10 → 17:50", stage: "海波浪" },
+                { performer: "岡崎體育<br>[JP]", time: "2025年3月30日 17:20 → 18:00", stage: "海龍王" },
+                { performer: "Guhit Band<br>[PH]", time: "2025年3月30日 17:20 → 18:00", stage: "青春夢" },
+                { performer: "血肉果汁機", time: "2025年3月30日 17:30 → 18:10", stage: "南霸天" },
+                { performer: "[DJ]<br>LEONA", time: "2025年3月30日 17:30 → 18:10", stage: "小港祭" },
+                { performer: "老貓偵探社", time: "2025年3月30日 17:40 → 18:20", stage: "出頭天" },
+                { performer: "Everydaze", time: "2025年3月30日 18:00 → 18:40", stage: "女神龍" },
+                { performer: "Chill Qin", time: "2025年3月30日 18:00 → 18:40", stage: "藍寶石" },
+                { performer: "Roman<br>ft.<br>EvolutioN", time: "2025年3月30日 18:00 → 19:00", stage: "大樹下" },
+                { performer: "#爵犬<br>X<br>WADE DAO", time: "2025年3月30日 18:10 → 19:40", stage: "小港祭" },
+                { performer: "少年白", time: "2025年3月30日 18:20 → 19:00", stage: "卡魔麥" },
+                { performer: "五五身", time: "2025年3月30日 18:40 → 19:20", stage: "海波浪" },
+                { performer: "傻子<br>與白痴", time: "2025年3月30日 18:40 → 19:20", stage: "海龍王" },
+                { performer: "餵飽豬", time: "2025年3月30日 18:40 → 19:20", stage: "青春夢" },
+                { performer: "拍謝少年<br>SORRY<br>YOUTH", time: "2025年3月30日 19:10 → 19:50", stage: "南霸天" },
+                { performer: "deca<br>joins", time: "2025年3月30日 19:30 → 20:10", stage: "女神龍" },
+                { performer: "黑狼<br>人本那卡西<br>[望鄉篇]", time: "2025年3月30日 19:40 → 20:20", stage: "卡魔麥" },
+                { performer: "#爵犬<br>JAM", time: "2025年3月30日 19:40 → 21:00", stage: "小港祭" },
+                { performer: "Sonia<br>Calico<br>&<br>灣島皇后", time: "2025年3月30日 20:10 → 21:40", stage: "海波浪" },
+                { performer: "THE<br>SPELLBOUND<br>BOOM BOOM SATELLITES<br>special set<br>[JP]", time: "2025年3月30日 20:10 → 20:50", stage: "海龍王" },
+                { performer: "THE<br>FLAMING<br>LIPS<br>[US]", time: "2025年3月30日 20:50 → 21:50", stage: "南霸天" },
+                { performer: "QURULI<br>[JP]", time: "2025年3月30日 21:00 → 21:40", stage: "女神龍" },
+            ]
+        };
+
+        const stages = [
+            "南霸天", "海龍王", "女神龍", "海波浪", "卡魔麥", 
+            "出頭天", "大雄丸", "藍寶石", "青春夢", "小港祭", "大樹下"
+        ];
+
+        // Parse time string to get hours and minutes
+        function parseTime(timeStr) {
+            const timeMatch = timeStr.match(/(\d{2}):(\d{2})/);
+            if (timeMatch) {
+                return {
+                    hours: parseInt(timeMatch[1]),
+                    minutes: parseInt(timeMatch[2])
+                };
+            }
+            return null;
+        }
+
+        // Function to generate time slots
+        // Make sure both days use the exact same time slots
+        function generateTimeSlots() {
+            const timeSlots = [];
+            // Generate time slots from 12:00 to 22:00 in 10-minute increments
+            for (let hour = 12; hour < 22; hour++) {
+                for (let minute = 0; minute < 60; minute += 10) {
+                    const formattedHour = hour.toString().padStart(2, '0');
+                    const formattedMinute = minute.toString().padStart(2, '0');
+                    timeSlots.push(`${formattedHour}:${formattedMinute}`);
+                }
+            }
+            return timeSlots;
+        }
+
+        // Create performance cells
+        function createPerformanceCell(performance, rowspan = 1) {
+            const cell = document.createElement('td');
+            cell.classList.add('performance-cell');
+            cell.dataset.performer = performance.performer;
+            cell.dataset.time = performance.time;
+            cell.dataset.stage = performance.stage;
+            
+            if (rowspan > 1) {
+                cell.rowSpan = rowspan;
+            }
+            
+            const box = document.createElement('div');
+            box.classList.add('performance-box');
+            box.classList.add(performance.stage);
+            box.innerHTML = `${performance.performer}`;
+            
+            cell.appendChild(box);
+            
+            cell.addEventListener('click', function() {
+                this.querySelector('.performance-box').classList.toggle('selected-performance');
+            });
+            
+            return cell;
+        }
+
+        // Generate table for a day
+        function generateDayTable(day) {
+            const tableId = day === 'day1' ? 'day1-table' : 'day2-table';
+            const table = document.getElementById(tableId).querySelector('tbody');
+            table.innerHTML = '';
+            
+            const timeSlots = generateTimeSlots();
+            const occupiedCells = {};
+
+            // Make sure we only generate time slots between 12:00 and 22:00
+            // with consistent 10 minute intervals
+            const filteredTimeSlots = timeSlots.filter(slot => {
+                const hour = parseInt(slot.split(':')[0]);
+                return hour >= 12 && hour < 22;
+            });
+            
+            // Initialize occupied cells tracking
+            stages.forEach(stage => {
+                occupiedCells[stage] = {};
+                timeSlots.forEach(time => {
+                    occupiedCells[stage][time] = false;
+                });
+            });
+            
+            // Mark cells as occupied based on performance data
+            performanceData[day].forEach(performance => {
+                const timeMatch = performance.time.match(/(\d{2}):(\d{2}) → (\d{2}):(\d{2})/);
+                if (timeMatch) {
+                    const startHour = parseInt(timeMatch[1]);
+                    const startMin = parseInt(timeMatch[2]);
+                    const endHour = parseInt(timeMatch[3]);
+                    const endMin = parseInt(timeMatch[4]);
+                    
+                    let currentHour = startHour;
+                    let currentMin = startMin;
+                    
+                    while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+                        const formattedHour = currentHour.toString().padStart(2, '0');
+                        const formattedMin = Math.floor(currentMin / 10) * 10;
+                        const formattedMinStr = formattedMin.toString().padStart(2, '0');
+                        const timeKey = `${formattedHour}:${formattedMinStr}`;
+                        
+                        if (timeSlots.includes(timeKey)) {
+                            occupiedCells[performance.stage][timeKey] = performance;
+                        }
+                        
+                        currentMin += 10;
+                        if (currentMin >= 60) {
+                            currentHour++;
+                            currentMin = 0;
+                        }
+                    }
+                }
+            });
+            
+            // Create table rows
+            // Ensure consistency in both tables by generating all time slots regardless of content
+            filteredTimeSlots.forEach((timeSlot, index) => {
+                const row = document.createElement('tr');
+                
+                // Add time cell
+                const timeCell = document.createElement('td');
+                timeCell.classList.add('time-cell');
+                timeCell.textContent = timeSlot;
+                row.appendChild(timeCell);
+                
+                // Add performance cells for each stage
+                stages.forEach(stage => {
+                    if (occupiedCells[stage][timeSlot] && typeof occupiedCells[stage][timeSlot] === 'object') {
+                        const performance = occupiedCells[stage][timeSlot];
+                        
+                        // Check if this is the start of a performance
+                        const prevTimeIndex = timeSlots.indexOf(timeSlot) - 1;
+                        const prevTime = prevTimeIndex >= 0 ? timeSlots[prevTimeIndex] : null;
+                        
+                        if (!prevTime || !occupiedCells[stage][prevTime] || 
+                            occupiedCells[stage][prevTime].performer !== performance.performer) {
+                            
+                            // Calculate rowspan based on performance duration
+                            const timeMatch = performance.time.match(/(\d{2}):(\d{2}) → (\d{2}):(\d{2})/);
+                            if (timeMatch) {
+                                const startHour = parseInt(timeMatch[1]);
+                                const startMin = parseInt(timeMatch[2]);
+                                const endHour = parseInt(timeMatch[3]);
+                                const endMin = parseInt(timeMatch[4]);
+                                
+                                const startTime = startHour * 60 + startMin;
+                                const endTime = endHour * 60 + endMin;
+                                const durationInMinutes = endTime - startTime;
+                                const rowspan = Math.ceil(durationInMinutes / 10);
+                                
+                                row.appendChild(createPerformanceCell(performance, rowspan));
+                            } else {
+                                row.appendChild(createPerformanceCell(performance));
+                            }
+                        }
+                    } else if (!occupiedCells[stage][timeSlot]) {
+                        const emptyCell = document.createElement('td');
+                        row.appendChild(emptyCell);
+                    }
+                });
+                
+                table.appendChild(row);
+            });
+        }
+
+        // Initialize tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Generate schedule image table
+        document.getElementById('generateBtn').addEventListener('click', function() {
+            const scheduleImageBody = document.getElementById('scheduleImageBody');
+            scheduleImageBody.innerHTML = '';
+            
+            const selectedPerformances = document.querySelectorAll('.selected-performance');
+            
+            // Group performances by time slot
+            const performancesByTime = {};
+            const allTimeSlots = new Set();
+            
+            selectedPerformances.forEach(performance => {
+                const cell = performance.closest('.performance-cell');
+                const performer = cell.dataset.performer;
+                const fullTime = cell.dataset.time;
+                const stage = cell.dataset.stage;
+                
+                // Extract the time portion (e.g., "12:30 → 13:10")
+                const timeMatch = fullTime.match(/(\d{2}:\d{2} → \d{2}:\d{2})/);
+                if (timeMatch) {
+                    const timeSlot = timeMatch[1];
+                    allTimeSlots.add(timeSlot);
+                    
+                    if (!performancesByTime[timeSlot]) {
+                        performancesByTime[timeSlot] = { day1: [], day2: [] };
+                    }
+                    
+                    const eventInfo = {
+                        performer,
+                        stage,
+                        stageClass: stage
+                    };
+                    
+                    if (fullTime.includes('3月29日')) {
+                        performancesByTime[timeSlot].day1.push(eventInfo);
+                    } else if (fullTime.includes('3月30日')) {
+                        performancesByTime[timeSlot].day2.push(eventInfo);
+                    }
+                }
+            });
+            
+            // Sort time slots
+            const sortedTimeSlots = Array.from(allTimeSlots).sort();
+            
+            // Create rows for each time slot
+            sortedTimeSlots.forEach(timeSlot => {
+                const row = document.createElement('tr');
+                
+                const timeCell = document.createElement('td');
+                timeCell.classList.add('time-column');
+                timeCell.textContent = timeSlot;
+                row.appendChild(timeCell);
+                
+                // Day 1 cell
+                const day1Cell = document.createElement('td');
+                if (performancesByTime[timeSlot].day1.length > 0) {
+                    performancesByTime[timeSlot].day1.forEach(event => {
+                        const eventDiv = document.createElement('div');
+                        eventDiv.classList.add('schedule-event', event.stageClass);
+                        eventDiv.innerHTML = `<strong>${event.performer}</strong> @ ${event.stage}`;
+                        day1Cell.appendChild(eventDiv);
+                    });
+                }
+                row.appendChild(day1Cell);
+                
+                // Day 2 cell
+                const day2Cell = document.createElement('td');
+                if (performancesByTime[timeSlot].day2.length > 0) {
+                    performancesByTime[timeSlot].day2.forEach(event => {
+                        const eventDiv = document.createElement('div');
+                        eventDiv.classList.add('schedule-event', event.stageClass);
+                        eventDiv.innerHTML = `<strong>${event.performer}</strong> @ ${event.stage}`;
+                        day2Cell.appendChild(eventDiv);
+                    });
+                }
+                row.appendChild(day2Cell);
+                
+                scheduleImageBody.appendChild(row);
+            });
+            
+            document.getElementById('mySchedule').style.display = 'block';
+        });
+
+        // Initialize tables
+        generateDayTable('day1');
+        generateDayTable('day2');
+
+        // Function to update table headers with matching colors
+        function updateTableHeaders() {
+            const day1Headers = document.querySelectorAll('#day1-table th');
+            const day2Headers = document.querySelectorAll('#day2-table th');
+            
+            // Skip the first header (time column)
+            for (let i = 1; i < day1Headers.length; i++) {
+                const stageName = day1Headers[i].textContent;
+                day1Headers[i].classList.add('stage-header', stageName);
+                day2Headers[i].classList.add('stage-header', stageName);
+            }
+        }
+        
+        // Call this function after the tables are generated
+        // Make the table wrappers consistent
+        window.addEventListener('DOMContentLoaded', function() {
+            // Ensure both table containers have the same class
+            document.querySelectorAll('.tab-content > div').forEach(wrapper => {
+                wrapper.className = 'table-wrapper';
+            });
+            
+            // Generate tables
+            generateDayTable('day1');
+            generateDayTable('day2');
+            updateTableHeaders();
+        });
+
+        // Function to save schedule as image
+        document.getElementById('saveImageBtn').addEventListener('click', function() {
+            const scheduleElement = document.getElementById('mySchedule');
+            
+            // Show loading message
+            const loadingMsg = document.createElement('div');
+            loadingMsg.textContent = '正在生成圖片...';
+            loadingMsg.style.textAlign = 'center';
+            loadingMsg.style.padding = '10px';
+            loadingMsg.style.backgroundColor = '#f0f0f0';
+            loadingMsg.style.marginTop = '10px';
+            document.querySelector('.container').appendChild(loadingMsg);
+            
+            // Use html2canvas to capture the schedule
+            html2canvas(scheduleElement, {
+                backgroundColor: '#ffffff',
+                scale: 2, // Higher resolution
+                logging: false,
+                useCORS: true
+            }).then(function(canvas) {
+                // Create download link
+                const link = document.createElement('a');
+                link.download = '2025大港開唱行事曆.png';
+                link.href = canvas.toDataURL('image/png');
+                
+                // Trigger download
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Remove loading message
+                document.querySelector('.container').removeChild(loadingMsg);
+            }).catch(function(error) {
+                console.error('Error generating image:', error);
+                alert('生成圖片時發生錯誤，請再試一次');
+                document.querySelector('.container').removeChild(loadingMsg);
+            });
+        });
+        
+        // Modify the original generate button to show the save button
+        const originalGenerateBtn = document.getElementById('generateBtn');
+        const originalClickHandler = originalGenerateBtn.onclick;
+        
+        originalGenerateBtn.onclick = function() {
+            // Call the original handler
+            if (originalClickHandler) {
+                originalClickHandler.call(this);
+            }
+            
+            // Show the save image button
+            document.getElementById('saveImageBtn').style.display = 'block';
+        };
+    </script>
+</body>
+</html>
